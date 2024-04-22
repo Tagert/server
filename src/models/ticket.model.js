@@ -10,6 +10,6 @@ const ticketSchema = mongoose.Schema({
   userId: { type: String, required: true },
 });
 
-const ticketModel = mongoose.model("tickets", ticketSchema);
+const TicketModel = mongoose.model("tickets", ticketSchema);
 
-export { ticketModel };
+export { TicketModel };

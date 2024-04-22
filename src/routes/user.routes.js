@@ -7,6 +7,7 @@ import {
   GET_ALL_USERS,
   GET_USER_BY_ID,
   GET_USER_BY_ID_WITH_TICKETS,
+  DELETE_USER,
 } from "../controllers/user.controller.js";
 import auth from "../middlewares/authorization.js";
 
@@ -15,6 +16,8 @@ const router = express.Router();
 router.post("/users/sign_up", SIGN_UP);
 
 router.post("/users/login", LOG_IN);
+
+router.delete("/users/delete", auth, DELETE_USER);
 
 router.get("/users", auth, GET_ALL_USERS);
 

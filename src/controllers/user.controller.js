@@ -1,28 +1,56 @@
 import { UserModel } from "../models/user.model.js";
+import { alphabeticalSorting } from "../utils/helpers/alphabetical_sorting.js";
 import { toUpperCase } from "../utils/helpers/to_upper_case.js";
-import { validatePassword } from "../utils/validations/validate_password.js";
+import { validateEmail } from "../utils/validations/email.validation.js";
+import { validatePassword } from "../utils/validations/password.validation.js";
+import {
+  generateJwToken,
+  generateRefreshToken,
+} from "../middlewares/generate_tokens.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
 const SIGN_UP = async (req, res) => {
   try {
-    const lithuanianDate = new Date().toLocaleString("lt-LT");
+    const dateFormat = {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    };
+    const formattedDateTime = new Date().toLocaleString("lt-LT", dateFormat);
 
     const salt = bcrypt.genSaltSync(10);
     const hash = bcrypt.hashSync(req.body.password, salt);
 
+    const emailValidation = validateEmail(req.body.email);
     const passwordValidation = validatePassword(req.body.password);
+
+    if (!emailValidation) {
+      return res
+        .status(404)
+        .json({ message: "Please provide a properly formatted email address" });
+    }
 
     if (passwordValidation !== true) {
       return res.status(400).json({ error: passwordValidation });
     }
 
+    const existingUser = await UserModel.findOne({ email: req.body.email });
+    if (existingUser) {
+      return res
+        .status(400)
+        .json({ message: "User with this email already exists" });
+    }
+
     const user = new UserModel({
-      createdDate: lithuanianDate,
+      createdDate: formattedDateTime,
       name: req.body.name,
       email: req.body.email,
       password: hash,
-      real_estates: [],
+      bought_tickets: [],
       money_balance: req.body.money_balance,
     });
     const changeToUpperCase = toUpperCase(user.name);
@@ -32,17 +60,9 @@ const SIGN_UP = async (req, res) => {
 
     const response = await user.save();
 
-    const jwt_token = jwt.sign(
-      { email: user.email, user_id: user.id },
-      process.env.JWT_KEY,
-      { expiresIn: "2h" }
-    );
+    const jwt_token = generateJwToken(user.user_id, user.email);
 
-    const jwt_refresh_token = jwt.sign(
-      { email: user.email, user_id: user.id },
-      process.env.REFRESH_JWT_KEY,
-      { expiresIn: "24h" }
-    );
+    const jwt_refresh_token = generateRefreshToken(user.user_id, user.email);
 
     return res.status(201).json({
       response: response,
@@ -77,17 +97,9 @@ const LOG_IN = async (req, res) => {
         .json({ message: "Unrecognized username or password" });
     }
 
-    const jwt_token = jwt.sign(
-      { email: user.email, user_id: user.id },
-      process.env.JWT_KEY,
-      { expiresIn: "2h" }
-    );
+    const jwt_token = generateJwToken(user.user_id, user.email);
 
-    const jwt_refresh_token = jwt.sign(
-      { email: user.email, user_id: user.id },
-      process.env.REFRESH_JWT_KEY,
-      { expiresIn: "24h" }
-    );
+    const jwt_refresh_token = generateRefreshToken(user.user_id, user.email);
 
     return res.status(201).json({
       status: `User (${user.email}) have been logged successfully in `,
@@ -101,9 +113,9 @@ const LOG_IN = async (req, res) => {
 };
 
 const REFRESH_TOKEN = async (req, res) => {
-  const jwtRefreshToken = req.body.jwt_refresh_token;
-
   try {
+    const jwtRefreshToken = req.body.jwt_refresh_token;
+
     if (!jwtRefreshToken) {
       return res.status(400).json({
         message:
@@ -128,7 +140,7 @@ const REFRESH_TOKEN = async (req, res) => {
       return res.status(200).json({
         jwt_token: jwtToken,
         jwt_refresh_token: jwtRefreshToken,
-        message: "User Logged back successfully",
+        message: "User logged in successfully",
       });
     });
   } catch (error) {
@@ -145,15 +157,7 @@ const GET_ALL_USERS = async (req, res) => {
       return res.status(404).json({ message: "Data not exist" });
     }
 
-    const sortedUsers = users.sort((a, b) => {
-      if (a.name > b.name) {
-        return 1;
-      }
-      if (a.name < b.name) {
-        return -1;
-      }
-      return 0;
-    });
+    const sortedUsers = alphabeticalSorting(users);
 
     return res.json({ usersList: sortedUsers });
   } catch (err) {
@@ -214,6 +218,46 @@ const GET_USER_BY_ID_WITH_TICKETS = async (req, res) => {
   }
 };
 
+const DELETE_USER = async (req, res) => {
+  try {
+    const jwtToken = req.headers.authorization;
+
+    jwt.verify(jwtToken, process.env.JWT_KEY, async (err, decoded) => {
+      if (err) {
+        return res
+          .status(400)
+          .json({ message: "Your time has expired, you must log in again" });
+      }
+
+      const user_id = decoded.user_id;
+      const email = decoded.email;
+
+      try {
+        const deleteUser = await UserModel.findByIdAndDelete(user_id);
+
+        if (!deleteUser) {
+          return res
+            .status(404)
+            .json({ message: `User with ID (${user_id}) was not found` });
+        }
+
+        return res.status(200).json({
+          message: `User ${email} with ID (${user_id}) was deleted`,
+          user: deleteUser,
+        });
+      } catch (deleteErr) {
+        console.log("ERROR DELETING USER:", deleteErr);
+        return res
+          .status(500)
+          .json({ error: "Something went wrong while deleting user" });
+      }
+    });
+  } catch (err) {
+    console.log("HANDLED ERROR:", err);
+    return res.status(500).json({ error: "Something went wrong" });
+  }
+};
+
 export {
   SIGN_UP,
   LOG_IN,
@@ -221,4 +265,5 @@ export {
   GET_ALL_USERS,
   GET_USER_BY_ID,
   GET_USER_BY_ID_WITH_TICKETS,
+  DELETE_USER,
 };

@@ -1,4 +1,4 @@
-const calcUserMoneyBalance = (user, ticket) => {
+const calcUserMoneyBalancePurchase = (user, ticket) => {
   const ticketPrice = ticket.ticket_price;
   let userMoneyBalance = user.money_balance;
 
@@ -9,4 +9,11 @@ const calcUserMoneyBalance = (user, ticket) => {
   }
 };
 
-export { calcUserMoneyBalance };
+const calcUserMoneyBalanceRefund = (user, ticket) => {
+  const ticketPrice = ticket.ticket_price;
+  let userMoneyBalance = user.money_balance;
+
+  return (userMoneyBalance += ticketPrice);
+};
+
+export { calcUserMoneyBalancePurchase, calcUserMoneyBalanceRefund };
