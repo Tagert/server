@@ -130,10 +130,11 @@ const REFRESH_TOKEN = async (req, res) => {
           .json({ message: "Your time has expired, you must log in again" });
       }
 
-      const user_id = decoded.user_id;
+      const userId = decoded.userId;
+      console.log(userId);
       const email = decoded.email;
 
-      const jwtToken = jwt.sign({ email, user_id }, process.env.JWT_KEY, {
+      const jwtToken = jwt.sign({ userId, email }, process.env.JWT_KEY, {
         expiresIn: "2h",
       });
 

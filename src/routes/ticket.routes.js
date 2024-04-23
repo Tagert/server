@@ -6,13 +6,15 @@ import {
   BUY_TICKET,
   REFUND_TICKET,
 } from "../controllers/ticket.controller.js";
+import { validateData } from "../middlewares/validate_schema.js";
+import { ticketSchema } from "../utils/validations/schemes/ticket.schema.js";
 import auth from "../middlewares/authorization.js";
 
 const router = express.Router();
 
 router.get("/tickets", auth, GET_ALL_TICKETS);
 
-router.post("/tickets", auth, INSERT_TICKET);
+router.post("/tickets", validateData(ticketSchema), auth, INSERT_TICKET);
 
 router.put("/tickets/purchase", auth, BUY_TICKET);
 

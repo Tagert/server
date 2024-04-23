@@ -4,6 +4,9 @@ import {
   calcUserMoneyBalancePurchase,
   calcUserMoneyBalanceRefund,
 } from "../utils/helpers/calc_money_balance.js";
+import { findUser } from "../middlewares/find_user.js";
+import { findTicket } from "../middlewares/find_ticket.js";
+import { updateUser } from "../middlewares/updated_user.js";
 import { alphabeticalSorting } from "../utils/helpers/alphabetical_sorting.js";
 import jwt from "jsonwebtoken";
 
@@ -27,13 +30,7 @@ const GET_ALL_TICKETS = async (req, res) => {
 const INSERT_TICKET = async (req, res) => {
   try {
     const ticket = new TicketModel({
-      id: req.body.id,
-      title: req.body.title,
-      from_location: req.body.from_location,
-      to_location: req.body.to_location,
-      to_location_photo_url: req.body.to_location_photo_url,
-      ticket_price: req.body.ticket_price,
-      userId: req.body.userId,
+      ...req.body,
     });
     ticket.ticket_id = ticket._id.toString();
 
@@ -95,43 +92,43 @@ const UPDATE_TICKET_BY_ID = async (req, res) => {
 
 const BUY_TICKET = async (req, res) => {
   try {
-    const findUser = await UserModel.findOne({ user_id: req.body.user_id });
+    const user = await findUser(req.body.user_id);
 
-    if (!findUser) {
+    if (!user) {
       return res.status(404).json({
         message: `User with this ID (${req.body.user_id}) does not exist`,
       });
     }
 
-    const findTicket = await TicketModel.findOne({
-      ticket_id: req.body.ticket_id,
-    });
+    const ticket = await findTicket(req.body.ticket_id);
 
-    if (!findTicket) {
+    if (!ticket) {
       return res.status(404).json({
         message: `Ticket with this ID (${req.body.ticket_id}) does not exist`,
       });
     }
 
-    if (findUser.bought_tickets.includes(req.body.ticket_id)) {
+    if (user.bought_tickets.includes(req.body.ticket_id)) {
       return res.status(400).json({
         message: `Ticket with this ID (${req.body.ticket_id}) has already been purchased by the user`,
       });
     }
 
-    const userMoneyBalance = calcUserMoneyBalancePurchase(findUser, findTicket);
+    let updatedBalance;
+    try {
+      updatedBalance = calcUserMoneyBalancePurchase(user, ticket);
+    } catch (error) {
+      return res.status(400).json({ error: error.message });
+    }
 
-    const updatedUser = await UserModel.findByIdAndUpdate(
-      req.body.user_id,
-      {
-        money_balance: userMoneyBalance,
-        $push: { bought_tickets: req.body.ticket_id },
-      },
-      { new: true }
+    const updatedUser = await updateUser(
+      user._id,
+      updatedBalance,
+      req.body.ticket_id
     );
 
     return res.status(201).json({
-      message: `The ticket which cost ${findTicket.ticket_price}€  was purchased successfully, your money balance changed from ${findUser.money_balance}€ to ${userMoneyBalance}€`,
+      message: `The ticket which cost ${ticket.ticket_price}€  was purchased successfully, your money balance changed from ${user.money_balance}€ to ${updatedBalance}€`,
       updatedUser,
     });
   } catch (err) {
