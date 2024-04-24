@@ -27,6 +27,23 @@ const GET_ALL_TICKETS = async (req, res) => {
   }
 };
 
+const GET_TICKET_BY_ID = async (req, res) => {
+  try {
+    const findTicket = await TicketModel.findOne({ ticket_id: req.params.id });
+
+    if (!findTicket) {
+      return res.status(400).json({
+        message: `The entered ID (${req.params.id}) does not exist. Please try entering a different ID.`,
+      });
+    }
+
+    return res.json(findTicket);
+  } catch (err) {
+    console.log("HANDLED ERROR:", err);
+    return res.status(500).json({ error: "Something went wrong" });
+  }
+};
+
 const INSERT_TICKET = async (req, res) => {
   try {
     const ticket = new TicketModel({
@@ -186,6 +203,7 @@ const REFUND_TICKET = async (req, res) => {
 
 export {
   GET_ALL_TICKETS,
+  GET_TICKET_BY_ID,
   INSERT_TICKET,
   UPDATE_TICKET_BY_ID,
   BUY_TICKET,

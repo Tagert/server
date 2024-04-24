@@ -139,9 +139,9 @@ const REFRESH_TOKEN = async (req, res) => {
       });
 
       return res.status(200).json({
+        message: `Welcome back ${email} you have successfully logged in`,
         jwt_token: jwtToken,
         jwt_refresh_token: jwtRefreshToken,
-        message: "User logged in successfully",
       });
     });
   } catch (error) {
@@ -207,7 +207,7 @@ const GET_USER_BY_ID_WITH_TICKETS = async (req, res) => {
           from: "tickets",
           localField: "bought_tickets",
           foreignField: "ticket_id",
-          as: "user_tickets",
+          as: "tickets_info",
         },
       },
     ]).exec();
@@ -230,7 +230,7 @@ const DELETE_USER = async (req, res) => {
           .json({ message: "Your time has expired, you must log in again" });
       }
 
-      const user_id = decoded.user_id;
+      const user_id = decoded.userId;
       const email = decoded.email;
 
       try {

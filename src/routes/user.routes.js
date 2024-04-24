@@ -9,11 +9,13 @@ import {
   GET_USER_BY_ID_WITH_TICKETS,
   DELETE_USER,
 } from "../controllers/user.controller.js";
+import { validateData } from "../middlewares/validate_schema.js";
+import { userSchema } from "../utils/validations/schemes/user.schema.js";
 import auth from "../middlewares/authorization.js";
 
 const router = express.Router();
 
-router.post("/users/sign_up", SIGN_UP);
+router.post("/users/sign_up", validateData(userSchema), SIGN_UP);
 
 router.post("/users/login", LOG_IN);
 
