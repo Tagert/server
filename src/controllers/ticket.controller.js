@@ -201,6 +201,30 @@ const REFUND_TICKET = async (req, res) => {
   }
 };
 
+const DELETE_TICKET_BY_ID = async (req, res) => {
+  try {
+    const ticket = await TicketModel.findOne({ ticket_id: req.params.id });
+
+    console.log(ticket);
+
+    if (!ticket) {
+      return res.status(401).json({
+        message: `Ticket with this ID (${req.params.id}) does not exist`,
+      });
+    }
+
+    const response = await TicketModel.deleteOne({ ticket_id: req.params.id });
+
+    return res.status(200).json({
+      message: `Ticket with ID (${req.params.id}) was deleted`,
+      response: response,
+    });
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({ error: "Something went wrong" });
+  }
+};
+
 export {
   GET_ALL_TICKETS,
   GET_TICKET_BY_ID,
@@ -208,4 +232,5 @@ export {
   UPDATE_TICKET_BY_ID,
   BUY_TICKET,
   REFUND_TICKET,
+  DELETE_TICKET_BY_ID,
 };

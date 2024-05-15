@@ -6,6 +6,7 @@ import {
   UPDATE_TICKET_BY_ID,
   BUY_TICKET,
   REFUND_TICKET,
+  DELETE_TICKET_BY_ID,
 } from "../controllers/ticket.controller.js";
 import { validateData } from "../middlewares/validate_schema.js";
 import { ticketSchema } from "../utils/validations/schemes/ticket.schema.js";
@@ -24,5 +25,7 @@ router.put("/tickets/purchase", auth, BUY_TICKET);
 router.put("/tickets/:ticketId/users/:usersId", auth, REFUND_TICKET);
 
 router.put("/tickets/:id", auth, UPDATE_TICKET_BY_ID);
+
+router.delete("/tickets/:id", auth, DELETE_TICKET_BY_ID);
 
 export default router;
