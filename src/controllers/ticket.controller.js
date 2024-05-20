@@ -205,11 +205,15 @@ const DELETE_TICKET_BY_ID = async (req, res) => {
   try {
     const ticket = await TicketModel.findOne({ ticket_id: req.params.id });
 
-    console.log(ticket);
-
     if (!ticket) {
       return res.status(401).json({
         message: `Ticket with this ID (${req.params.id}) does not exist`,
+      });
+    }
+
+    if (ticket.userId !== req.body.userId) {
+      return res.status(403).json({
+        message: "You are not authorized to take any actions on this data.",
       });
     }
 
